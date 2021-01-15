@@ -96,7 +96,6 @@ Puppet::Type.type(:mysql_grant).provide(:mysql, parent: Puppet::Provider::Mysql)
     @property_hash[:user]       = @resource[:user]
     @property_hash[:options]    = @resource[:options] if @resource[:options]
     @property_hash[:privileges] = @resource[:privileges]
-    @property_hash[:bin_log]    = @resource[:bin_log]
 
     exists? ? (return true) : (return false)
   end
@@ -142,7 +141,7 @@ Puppet::Type.type(:mysql_grant).provide(:mysql, parent: Puppet::Provider::Mysql)
 
   def flush
     @property_hash.clear
-    self.class.mysql_caller('FLUSH PRIVILEGES', 'regular')
+    self.class.mysql_caller('FLUSH PRIVILEGES', 'regular', @resource[:bin_log])
   end
 
   mk_resource_methods
