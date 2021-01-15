@@ -30,6 +30,11 @@ Puppet::Type.newtype(:mysql_database) do
   newproperty(:bin_log) do
     desc 'Disables SQL_LOG_BIN usage. Can be helpful for saving replication state'
     defaultto "yes"
-    newvalue(%r{\w*})
+    newvalues("yes", "no")
+    # This property is used only during resource creation
+    # so changing its value should not trigger resource update (correction)
+    def insync?(is)
+      true
+    end
   end
 end

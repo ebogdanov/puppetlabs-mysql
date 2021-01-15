@@ -1,3 +1,5 @@
+require 'puppet/util/execution'
+
 # Puppet provider for mysql
 class Puppet::Provider::Mysql < Puppet::Provider
   # Without initvars commands won't work.
@@ -36,7 +38,7 @@ class Puppet::Provider::Mysql < Puppet::Provider
   ].join(':')
 
   # rubocop:disable Style/HashSyntax
-  commands :mysql_raw  => 'mysql'
+  # for mysql commands we switched to Puppet::Util::Execution to avoid quoting issues
   commands :mysqld     => 'mysqld'
   commands :mysqladmin => 'mysqladmin'
   # rubocop:enable Style/HashSyntax
@@ -101,38 +103,37 @@ class Puppet::Provider::Mysql < Puppet::Provider
 
   def self.mysql_caller(text_of_sql, type, bin_log = 'yes')
     opt = []
+
     if type.eql? 'system'
-      if File.file?("#{Facter.value(:root_home)}/.mylogin.cnf")
-        ENV['MYSQL_TEST_LOGIN_FILE'] = "#{Facter.value(:root_home)}/.mylogin.cnf"
-      else
-        opt.push(defaults_file)
-      end
       opt.push(system_database)
-
-      if bin_log.eql? 'no'
-        opt.push("--init-command=SET SESSION SQL_LOG_BIN = 0;")
-      end
       opt.push('-e')
-      opt.push(text_of_sql)
-
-      mysql_raw(opt.flatten.compact).scrub
     elsif type.eql? 'regular'
-      if File.file?("#{Facter.value(:root_home)}/.mylogin.cnf")
-        ENV['MYSQL_TEST_LOGIN_FILE'] = "#{Facter.value(:root_home)}/.mylogin.cnf"
-      else
-        opt.push(defaults_file)
-      end
-      if bin_log.eql? 'no'
-        opt.push("--init-command=SET SESSION SQL_LOG_BIN = 0;")
-      end
-
       opt.push('-NBe')
-      opt.push(text_of_sql)
-
-      mysql_raw(opt.flatten.compact).scrub
     else
       raise Puppet::Error, _("#mysql_caller: Unrecognised type '%{type}'" % { type: type })
     end
+
+    if File.file?("#{Facter.value(:root_home)}/.mylogin.cnf")
+      ENV['MYSQL_TEST_LOGIN_FILE'] = "#{Facter.value(:root_home)}/.mylogin.cnf"
+    else
+      opt.push(defaults_file)
+    end
+
+    if bin_log.eql? 'no'
+      opt.push('--init-command="SET SESSION SQL_LOG_BIN = 0;"')
+    end
+
+    if text_of_sql.kind_of?(Array)
+      sql = text_of_sql[0]
+      db = text_of_sql[1]
+      opt.push(" --database=#{db} \"#{sql}\"")
+    else
+      opt.push("\"#{text_of_sql}\"")
+    end
+
+    command = 'mysql ' + (opt.flatten.compact).join(' ')
+    output = Puppet::Util::Execution.execute(command, {:custom_environment => ENV}).to_s
+    output.scrub
   end
 
   def self.users

@@ -103,7 +103,6 @@ Puppet::Type.type(:mysql_user).provide(:mysql, parent: Puppet::Provider::Mysql) 
     @property_hash[:max_connections_per_hour] = max_connections_per_hour
     @property_hash[:max_queries_per_hour] = max_queries_per_hour
     @property_hash[:max_updates_per_hour] = max_updates_per_hour
-    @property_hash[:bin_log] = bin_log
 
     merged_tls_options = tls_options.join(' AND ')
     if newer_than('mysql' => '5.7.6', 'percona' => '5.7.6', 'mariadb' => '10.2.0')

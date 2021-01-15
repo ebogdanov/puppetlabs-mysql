@@ -115,4 +115,16 @@ Puppet::Type.newtype(:mysql_user) do
       end
     end
   end
+
+  newproperty(:bin_log) do
+    desc 'Indicates if SQL_LOG_BIN should be used for this user. Helpful for slaves.'
+    defaultto "yes"
+    newvalues("yes", "no")
+    # This property is used only during resource creation
+    # so changing its value should not trigger resource update (correction)
+    def insync?(is)
+      true
+    end
+  end
+
 end
